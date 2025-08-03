@@ -1,0 +1,116 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "last_updated": "2024-01-15",
+    "sources": ["IPCC 2021", "EPA eGRID 2021", "IEA 2023", "EPA TRI 2022"],
+    "description": "Comprehensive emission factors for manufacturing and industrial activities"
+  },
+  "electricity": {
+    "grid_mix": {
+      "coal": 0.95,
+      "natural_gas": 0.49,
+      "nuclear": 0.0,
+      "renewable": 0.0,
+      "average_grid": 0.85
+    },
+    "regional_factors": {
+      "northeast": 0.32,
+      "southeast": 0.89,
+      "midwest": 0.92,
+      "west": 0.45,
+      "texas": 0.78
+    }
+  },
+  "fuels": {
+    "diesel": 2.68,
+    "gasoline": 2.31,
+    "natural_gas": 2.02,
+    "lpg": 2.98,
+    "heating_oil": 2.69,
+    "coal": 2.42,
+    "biomass": 0.0,
+    "hydrogen": 0.0
+  },
+  "manufacturing_processes": {
+    "cement_production": 0.85,
+    "steel_production": 1.85,
+    "aluminum_production": 8.14,
+    "glass_production": 0.52,
+    "paper_production": 0.95,
+    "chemical_manufacturing": 2.1,
+    "textile_manufacturing": 0.8,
+    "food_processing": 0.6,
+    "automotive": 1.2,
+    "electronics": 0.4
+  },
+  "waste_management": {
+    "landfill": 0.5,
+    "recycling": 0.1,
+    "composting": 0.05,
+    "incineration": 0.3,
+    "hazardous_waste": 2.5
+  },
+  "transportation": {
+    "truck_freight": 0.16,
+    "rail_freight": 0.04,
+    "ship_freight": 0.01,
+    "air_freight": 0.8,
+    "passenger_car": 0.2,
+    "light_truck": 0.25
+  },
+  "refrigerants": {
+    "r22": 1810,
+    "r134a": 1430,
+    "r404a": 3922,
+    "r410a": 2088,
+    "r507": 3985,
+    "co2": 1,
+    "ammonia": 0
+  },
+  "industry_specific": {
+    "automotive_manufacturing": {
+      "energy_intensity": 2.1,
+      "waste_intensity": 0.3,
+      "water_intensity": 0.8
+    },
+    "electronics_manufacturing": {
+      "energy_intensity": 1.8,
+      "waste_intensity": 0.2,
+      "water_intensity": 0.5
+    },
+    "textile_manufacturing": {
+      "energy_intensity": 1.5,
+      "waste_intensity": 0.4,
+      "water_intensity": 1.2
+    },
+    "food_processing": {
+      "energy_intensity": 1.2,
+      "waste_intensity": 0.6,
+      "water_intensity": 2.0
+    },
+    "chemical_manufacturing": {
+      "energy_intensity": 3.5,
+      "waste_intensity": 0.8,
+      "water_intensity": 1.5
+    }
+  },
+  "conversion_factors": {
+    "kwh_to_co2e": 0.85,
+    "therm_to_co2e": 5.3,
+    "gallon_diesel_to_co2e": 10.2,
+    "gallon_gasoline_to_co2e": 8.9,
+    "cubic_meter_gas_to_co2e": 2.02,
+    "ton_waste_to_co2e": 0.5,
+    "kg_refrigerant_to_co2e": 1430
+  },
+  "scope_definitions": {
+    "scope1": "Direct emissions from owned or controlled sources",
+    "scope2": "Indirect emissions from purchased electricity, steam, heating, and cooling",
+    "scope3": "All other indirect emissions in the value chain"
+  },
+  "calculation_methods": {
+    "activity_based": "Emissions = Activity Data × Emission Factor",
+    "spend_based": "Emissions = Financial Data × Emission Factor",
+    "hybrid": "Combination of activity and spend-based methods"
+  }
+} 
