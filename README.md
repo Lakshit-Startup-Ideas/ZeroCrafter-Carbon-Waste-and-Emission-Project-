@@ -50,7 +50,7 @@ ZeroCraftr is a web-based SaaS platform that helps small manufacturing units tra
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/zerocraftr.git
+git clone [https://github.com/yourusername/zerocraftr.git](https://github.com/Lakshit-Startup-Ideas/ZeroCrafter-Carbon-Waste-and-Emission-Project-.git)
 cd zerocraftr
 ```
 
