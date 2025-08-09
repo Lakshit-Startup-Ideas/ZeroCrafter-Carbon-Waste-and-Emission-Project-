@@ -14,8 +14,14 @@ router.use(requireStaff);
 
 // Validation middleware
 const validateSuggestionRequest = [
-  body('timeframe').optional().isIn(['week', 'month', 'quarter', 'year']).withMessage('Timeframe must be week, month, quarter, or year'),
-  body('focus').optional().isIn(['energy', 'waste', 'overall']).withMessage('Focus must be energy, waste, or overall'),
+  body('timeframe')
+    .optional()
+    .isIn(['week', 'month', 'quarter', 'year'])
+    .withMessage('Timeframe must be week, month, quarter, or year'),
+  body('focus')
+    .optional()
+    .isIn(['energy', 'waste', 'overall'])
+    .withMessage('Focus must be energy, waste, or overall'),
 ];
 
 // POST /api/ai/suggestions - Get AI-powered sustainability suggestions
@@ -83,19 +89,30 @@ router.post('/suggestions', validateSuggestionRequest, async (req, res) => {
 
     const averageEmissions = totalEmissions / emissions.length;
 
-    const energyBreakdown = emissions.reduce((acc, emission) => {
-      acc.electricity += (emission.energyData.electricity.grid || 0) + (emission.energyData.electricity.renewable || 0);
-      acc.fuel += (emission.energyData.fuel.diesel || 0) + (emission.energyData.fuel.petrol || 0) + 
-                  (emission.energyData.fuel.naturalGas || 0) + (emission.energyData.fuel.lpg || 0);
-      return acc;
-    }, { electricity: 0, fuel: 0 });
+    const energyBreakdown = emissions.reduce(
+      (acc, emission) => {
+        acc.electricity +=
+          (emission.energyData.electricity.grid || 0) +
+          (emission.energyData.electricity.renewable || 0);
+        acc.fuel +=
+          (emission.energyData.fuel.diesel || 0) +
+          (emission.energyData.fuel.petrol || 0) +
+          (emission.energyData.fuel.naturalGas || 0) +
+          (emission.energyData.fuel.lpg || 0);
+        return acc;
+      },
+      { electricity: 0, fuel: 0 }
+    );
 
-    const wasteBreakdown = emissions.reduce((acc, emission) => {
-      acc.recyclable += emission.wasteData.recyclable || 0;
-      acc.hazardous += emission.wasteData.hazardous || 0;
-      acc.landfill += emission.wasteData.landfill || 0;
-      return acc;
-    }, { recyclable: 0, hazardous: 0, landfill: 0 });
+    const wasteBreakdown = emissions.reduce(
+      (acc, emission) => {
+        acc.recyclable += emission.wasteData.recyclable || 0;
+        acc.hazardous += emission.wasteData.hazardous || 0;
+        acc.landfill += emission.wasteData.landfill || 0;
+        return acc;
+      },
+      { recyclable: 0, hazardous: 0, landfill: 0 }
+    );
 
     // Generate suggestions based on data analysis
     const suggestions = generatePlaceholderSuggestions(
@@ -119,10 +136,11 @@ router.post('/suggestions', validateSuggestionRequest, async (req, res) => {
         dataPoints: emissions.length,
       },
     });
-
   } catch (error) {
     console.error('AI suggestions error:', error);
-    res.status(500).json(errorHelpers.createError('Failed to generate AI suggestions'));
+    res
+      .status(500)
+      .json(errorHelpers.createError('Failed to generate AI suggestions'));
   }
 });
 
@@ -155,17 +173,19 @@ router.post('/chat', async (req, res) => {
       const totalEmissions = recentEmissions.reduce((sum, emission) => {
         return sum + emission.calculatedEmissions.total;
       }, 0);
-      
+
       context = `User's recent emission data: Total emissions: ${totalEmissions.toFixed(2)} kg CO₂e from ${recentEmissions.length} records. `;
     }
 
     // Call Groq API for AI response
-    const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
-      model: 'llama3-8b-8192',
-      messages: [
-        {
-          role: 'system',
-          content: `You are ZeroCraftr AI Assistant, a specialized AI for emission tracking and sustainability. You help manufacturers track their carbon footprint, understand emission calculations, and provide sustainability advice. You have expertise in:
+    const response = await axios.post(
+      process.env.LLAMA_API_URL + '/chat/completions',
+      {
+        model: 'llama3-8b-8192', // Or your fine-tuned model name
+        messages: [
+          {
+            role: 'system',
+            content: `You are ZeroCraftr AI Assistant, a specialized AI for emission tracking and sustainability. You help manufacturers track their carbon footprint, understand emission calculations, and provide sustainability advice. You have expertise in:
 
 - Emission tracking and carbon footprint calculation
 - Energy consumption analysis (electricity, fuel, gas)
@@ -178,18 +198,20 @@ Always provide practical, actionable advice for small manufacturers looking to r
 
 Build By Lakshit Mathur, Trained By Lakshit Mathur for ZeroCraftr
 
-${context}`
-        },
-        { role: 'user', content: message }
-      ],
-      max_tokens: 500,
-      temperature: 0.7,
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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'
+${context}`,
+          },
+          { role: 'user', content: message },
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
       },
-    });
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.LLAMA_API_KEY}`,
+        },
+      }
+    );
 
     const aiResponse = response.data.choices[0].message.content;
 
@@ -198,15 +220,22 @@ ${context}`
       response: aiResponse,
       timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error('AI chat error:', error);
-    res.status(500).json(errorHelpers.createError('Failed to generate AI response'));
+    res
+      .status(500)
+      .json(errorHelpers.createError('Failed to generate AI response'));
   }
 });
 
 // Helper function to generate placeholder suggestions
-function generatePlaceholderSuggestions(totalEmissions, averageEmissions, energyBreakdown, wasteBreakdown, focus) {
+function generatePlaceholderSuggestions(
+  totalEmissions,
+  averageEmissions,
+  energyBreakdown,
+  wasteBreakdown,
+  focus
+) {
   const suggestions = [];
 
   if (focus === 'energy' || focus === 'overall') {
@@ -215,7 +244,8 @@ function generatePlaceholderSuggestions(totalEmissions, averageEmissions, energy
         category: 'energy',
         priority: 'high',
         title: 'Optimize Electricity Usage',
-        description: 'Your electricity consumption is significantly higher than fuel usage. Consider implementing energy-efficient practices.',
+        description:
+          'Your electricity consumption is significantly higher than fuel usage. Consider implementing energy-efficient practices.',
         actions: [
           'Switch to LED lighting throughout your facility',
           'Implement smart energy monitoring systems',
@@ -231,7 +261,8 @@ function generatePlaceholderSuggestions(totalEmissions, averageEmissions, energy
         category: 'energy',
         priority: 'medium',
         title: 'Reduce Fuel Consumption',
-        description: 'Consider transitioning to more efficient fuel sources or electric alternatives.',
+        description:
+          'Consider transitioning to more efficient fuel sources or electric alternatives.',
         actions: [
           'Maintain vehicles and equipment regularly',
           'Implement fuel-efficient driving practices',
@@ -249,7 +280,8 @@ function generatePlaceholderSuggestions(totalEmissions, averageEmissions, energy
         category: 'waste',
         priority: 'high',
         title: 'Improve Waste Management',
-        description: 'Your landfill waste exceeds recyclable waste. Implement better waste segregation and recycling programs.',
+        description:
+          'Your landfill waste exceeds recyclable waste. Implement better waste segregation and recycling programs.',
         actions: [
           'Set up comprehensive recycling bins throughout the facility',
           'Train staff on proper waste segregation',
@@ -265,7 +297,8 @@ function generatePlaceholderSuggestions(totalEmissions, averageEmissions, energy
         category: 'waste',
         priority: 'high',
         title: 'Optimize Hazardous Waste Handling',
-        description: 'Implement better hazardous waste management practices to reduce environmental impact.',
+        description:
+          'Implement better hazardous waste management practices to reduce environmental impact.',
         actions: [
           'Use less hazardous alternatives where possible',
           'Implement proper hazardous waste storage procedures',
@@ -282,18 +315,20 @@ function generatePlaceholderSuggestions(totalEmissions, averageEmissions, energy
       category: 'overall',
       priority: 'high',
       title: 'High Emissions Alert',
-      description: 'Your average emissions are above recommended levels. Consider implementing comprehensive sustainability measures.',
+      description:
+        'Your average emissions are above recommended levels. Consider implementing comprehensive sustainability measures.',
       actions: [
         'Conduct a comprehensive energy audit',
         'Set up emission reduction targets',
         'Implement regular monitoring and reporting',
         'Consider carbon offset programs',
       ],
-      potentialSavings: 'Significant long-term cost savings and compliance benefits',
+      potentialSavings:
+        'Significant long-term cost savings and compliance benefits',
     });
   }
 
   return suggestions;
 }
 
-module.exports = router; 
+module.exports = router;

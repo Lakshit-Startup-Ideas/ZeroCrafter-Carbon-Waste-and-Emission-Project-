@@ -20,6 +20,7 @@ ZeroCraftr is a web-based SaaS platform that helps small manufacturing units tra
 ## Tech Stack
 
 **Frontend**
+
 - React.js 18+
 - TailwindCSS
 - Chart.js
@@ -27,6 +28,7 @@ ZeroCraftr is a web-based SaaS platform that helps small manufacturing units tra
 - Axios
 
 **Backend**
+
 - Node.js
 - Express.js
 - MongoDB with Mongoose
@@ -34,6 +36,7 @@ ZeroCraftr is a web-based SaaS platform that helps small manufacturing units tra
 - bcrypt
 
 **Deployment**
+
 - Frontend: Vercel (free tier)
 - Backend: Railway/Render (free tier)
 - Database: MongoDB Atlas (free tier)
@@ -41,6 +44,7 @@ ZeroCraftr is a web-based SaaS platform that helps small manufacturing units tra
 ## Installation
 
 ### Prerequisites
+
 - Node.js (v16 or higher)
 - npm or yarn
 - MongoDB Atlas account
@@ -49,18 +53,21 @@ ZeroCraftr is a web-based SaaS platform that helps small manufacturing units tra
 ### Setup
 
 1. Clone the repository
+
 ```bash
 git clone https://github.com/yourusername/zerocraftr.git](https://github.com/Lakshit-Startup-Ideas/ZeroCrafter-Carbon-Waste-and-Emission-Project-.git
 cd zerocraftr
 ```
 
 2. Install server dependencies
+
 ```bash
 cd server
 npm install
 ```
 
 3. Install client dependencies
+
 ```bash
 cd ../client
 npm install
@@ -69,21 +76,24 @@ npm install
 4. Environment Configuration
 
 Create `.env` file in server directory:
+
 ```env
 MONGODB_URI=your-mongodb-connection-string
 JWT_SECRET=your-jwt-secret-key
 JWT_EXPIRE=7d
-LLAMA_API_KEY=your-llama-api-key
+LLAMA_API_KEY=your-groq-api-key
 NODE_ENV=development
 PORT=5000
 ```
 
 Create `.env` file in client directory:
+
 ```env
 REACT_APP_API_URL=http://localhost:5000/api
 ```
 
 5. Start development servers
+
 ```bash
 # From root directory
 npm run dev
@@ -113,21 +123,25 @@ zerocraftr/
 ## API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/login` - User login
 - `POST /api/auth/logout` - User logout
 
 ### Data Management
+
 - `GET /api/emissions` - Get emission records
 - `POST /api/emissions` - Create emission record
 - `PUT /api/emissions/:id` - Update emission record
 - `DELETE /api/emissions/:id` - Delete emission record
 
 ### Reports
+
 - `GET /api/reports/pdf` - Generate PDF report
 - `GET /api/reports/csv` - Generate CSV export
 
 ### AI Recommendations
+
 - `POST /api/ai/suggestions` - Get sustainability suggestions
 
 ## Usage
@@ -162,11 +176,13 @@ npm run test:coverage
 ## Deployment
 
 ### Frontend (Vercel)
+
 1. Connect GitHub repository to Vercel
 2. Configure environment variables
 3. Deploy automatically on push to main
 
 ### Backend (Railway/Render)
+
 1. Connect repository to hosting platform
 2. Set environment variables
 3. Deploy from main branch

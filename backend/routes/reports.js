@@ -16,9 +16,14 @@ router.use(requireStaff);
 
 // Validation middleware
 const validateReportParams = [
-  query('startDate').isISO8601().withMessage('Start date must be a valid ISO date'),
+  query('startDate')
+    .isISO8601()
+    .withMessage('Start date must be a valid ISO date'),
   query('endDate').isISO8601().withMessage('End date must be a valid ISO date'),
-  query('format').optional().isIn(['pdf', 'csv']).withMessage('Format must be pdf or csv'),
+  query('format')
+    .optional()
+    .isIn(['pdf', 'csv'])
+    .withMessage('Format must be pdf or csv'),
 ];
 
 // GET /api/reports/pdf - Generate PDF report
@@ -60,72 +65,43 @@ router.get('/pdf', validateReportParams, async (req, res) => {
       return sum + emission.calculatedEmissions.total;
     }, 0);
 
-    const averageEmissions = emissions.length > 0 ? totalEmissions / emissions.length : 0;
+    const averageEmissions =
+      emissions.length > 0 ? totalEmissions / emissions.length : 0;
 
-    // TODO: Implement actual PDF generation using jsPDF
-    // For now, return a placeholder response
-    res.json({
-      message: 'PDF report generation is not yet implemented',
-      reportData: {
-        user: user.companyName,
-        period: {
-          start: startDate,
-          end: endDate,
-        },
-        summary: {
-          totalRecords: emissions.length,
-          totalEmissions: totalEmissions.toFixed(2),
-          averageEmissions: averageEmissions.toFixed(2),
-        },
-        emissions: emissions.map(emission => ({
-          date: emission.date,
-          totalEmissions: emission.calculatedEmissions.total,
-          scope1: emission.calculatedEmissions.scope1,
-          scope2: emission.calculatedEmissions.scope2,
-          waste: emission.calculatedEmissions.waste,
-        })),
-      },
+    // Implement PDF generation using pdfkit
+    const PDFDocument = require('pdfkit');
+    const doc = new PDFDocument();
+    const chunks = [];
+    doc.on('data', chunk => chunks.push(chunk));
+    doc.on('end', () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="emissions-report-${Date.now()}.pdf"`
+      );
+      res.send(pdfBuffer);
     });
 
-    // TODO: Implement actual PDF generation
-    // const jsPDF = require('jsPDF');
-    // const doc = new jsPDF();
-    // 
-    // // Add content to PDF
-    // doc.setFontSize(20);
-    // doc.text('ZeroCraftr Emissions Report', 20, 20);
-    // 
-    // doc.setFontSize(12);
-    // doc.text(`Company: ${user.companyName}`, 20, 40);
-    // doc.text(`Period: ${startDate} to ${endDate}`, 20, 50);
-    // doc.text(`Total Emissions: ${totalEmissions.toFixed(2)} kg CO2e`, 20, 60);
-    // 
-    // // Generate PDF file
-    // const fileName = `emissions-report-${Date.now()}.pdf`;
-    // const filePath = path.join(__dirname, '../uploads', fileName);
-    // 
-    // // Ensure uploads directory exists
-    // if (!fs.existsSync(path.join(__dirname, '../uploads'))) {
-    //   fs.mkdirSync(path.join(__dirname, '../uploads'), { recursive: true });
-    // }
-    // 
-    // doc.save(filePath);
-    // 
-    // res.download(filePath, fileName, (err) => {
-    //   if (err) {
-    //     console.error('PDF download error:', err);
-    //   }
-    //   // Clean up file after download
-    //   setTimeout(() => {
-    //     fs.unlink(filePath, (unlinkErr) => {
-    //       if (unlinkErr) console.error('File cleanup error:', unlinkErr);
-    //     });
-    //   }, 5000);
-    // });
-
+    doc.fontSize(20).text('ZeroCraftr Emissions Report', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(12).text(`Company: ${user.companyName}`);
+    doc.text(`Period: ${startDate} to ${endDate}`);
+    doc.text(`Total Emissions: ${totalEmissions.toFixed(2)} kg CO2e`);
+    doc.text(`Average Emissions: ${averageEmissions.toFixed(2)} kg CO2e`);
+    doc.moveDown();
+    doc.text('Emissions Records:', { underline: true });
+    emissions.forEach(emission => {
+      doc.text(
+        `Date: ${emission.date.toISOString().split('T')[0]}, Total: ${emission.calculatedEmissions.total} kg, Scope1: ${emission.calculatedEmissions.scope1}, Scope2: ${emission.calculatedEmissions.scope2}, Waste: ${emission.calculatedEmissions.waste}`
+      );
+    });
+    doc.end();
   } catch (error) {
     console.error('PDF generation error:', error);
-    res.status(500).json(errorHelpers.createError('Failed to generate PDF report'));
+    res
+      .status(500)
+      .json(errorHelpers.createError('Failed to generate PDF report'));
   }
 });
 
@@ -195,7 +171,7 @@ router.get('/csv', validateReportParams, async (req, res) => {
 
     // TODO: Implement actual CSV generation
     // const createCsvWriter = require('csv-writer').createObjectCsvWriter;
-    // 
+    //
     // const csvWriter = createCsvWriter({
     //   path: path.join(__dirname, '../uploads', `emissions-${Date.now()}.csv`),
     //   header: [
@@ -215,7 +191,7 @@ router.get('/csv', validateReportParams, async (req, res) => {
     //     { id: 'totalEmissions', title: 'Total Emissions (kg CO2e)' },
     //   ],
     // });
-    // 
+    //
     // const records = emissions.map(emission => ({
     //   date: emission.date.toISOString().split('T')[0],
     //   electricityGrid: emission.energyData.electricity.grid,
@@ -232,12 +208,12 @@ router.get('/csv', validateReportParams, async (req, res) => {
     //   wasteEmissions: emission.calculatedEmissions.waste,
     //   totalEmissions: emission.calculatedEmissions.total,
     // }));
-    // 
+    //
     // await csvWriter.writeRecords(records);
-    // 
+    //
     // const fileName = `emissions-${Date.now()}.csv`;
     // const filePath = path.join(__dirname, '../uploads', fileName);
-    // 
+    //
     // res.download(filePath, fileName, (err) => {
     //   if (err) {
     //     console.error('CSV download error:', err);
@@ -249,11 +225,12 @@ router.get('/csv', validateReportParams, async (req, res) => {
     //     });
     //   }, 5000);
     // });
-
   } catch (error) {
     console.error('CSV generation error:', error);
-    res.status(500).json(errorHelpers.createError('Failed to generate CSV report'));
+    res
+      .status(500)
+      .json(errorHelpers.createError('Failed to generate CSV report'));
   }
 });
 
-module.exports = router; 
+module.exports = router;
