@@ -7,10 +7,11 @@ WORKDIR /app/frontend
 
 # Copy dependency files separately for better cache
 COPY frontend/package.json ./
-COPY frontend/package-lock.json ./
+# Copy lockfile if it exists (ignore error if missing)
+COPY frontend/package-lock.json* ./
 
 # Install all dependencies (including devDependencies) for build
-RUN if [ -s package-lock.json ]; then npm ci; else npm install; fi
+RUN if [ -f package-lock.json ] && [ -s package-lock.json ]; then npm ci; else npm install; fi
 
 # Copy rest of frontend source
 COPY frontend/ ./
@@ -26,10 +27,11 @@ WORKDIR /app/backend
 
 # Copy dependency files separately for better cache
 COPY backend/package.json ./
-COPY backend/package-lock.json ./
+# Copy lockfile if it exists (ignore error if missing)
+COPY backend/package-lock.json* ./
 
 # Install all dependencies (including devDependencies) for build
-RUN if [ -s package-lock.json ]; then npm ci; else npm install; fi
+RUN if [ -f package-lock.json ] && [ -s package-lock.json ]; then npm ci; else npm install; fi
 
 # Copy rest of backend source
 COPY backend/ ./
@@ -42,8 +44,9 @@ WORKDIR /app
 
 # Copy only production dependencies for backend
 COPY backend/package.json ./backend/
-COPY backend/package-lock.json ./backend/
-RUN cd backend && if [ -s package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
+# Copy lockfile if it exists (ignore error if missing)
+COPY backend/package-lock.json* ./backend/
+RUN cd backend && if [ -f package-lock.json ] && [ -s package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
 
 # Copy backend source (excluding node_modules)
 COPY --from=backend-build /app/backend ./backend
