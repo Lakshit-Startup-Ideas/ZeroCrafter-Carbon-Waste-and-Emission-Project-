@@ -8,12 +8,15 @@
 FROM node:18-alpine AS frontend-build
 WORKDIR /app/frontend
 
-# Copy package.json and package-lock.json separately to avoid errors if lockfile is missing
+
+# Copy package.json (always exists)
 COPY frontend/package.json ./
-COPY frontend/package-lock.json ./
+# Copy package-lock.json if it exists (ignore errors if missing)
+RUN if [ -f ../frontend/package-lock.json ]; then cp ../frontend/package-lock.json ./package-lock.json; fi
 
 # Install dependencies: use lockfile if present, else fallback to package.json
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
 
 # Copy frontend source
 COPY frontend/ ./
@@ -22,13 +25,17 @@ COPY frontend/ ./
 RUN npm run build
 
 ############################
+
+############################
 # 2. Build backend
 ############################
 FROM node:18-alpine AS backend-build
 WORKDIR /app/backend
 
+# Copy package.json (always exists)
 COPY backend/package.json ./
-COPY backend/package-lock.json ./
+# Copy package-lock.json if it exists (ignore errors if missing)
+RUN if [ -f ../backend/package-lock.json ]; then cp ../backend/package-lock.json ./package-lock.json; fi
 
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
@@ -40,10 +47,14 @@ COPY backend/ ./
 FROM node:18-alpine AS runner
 WORKDIR /app
 
-# Copy backend package files and install only production dependencies
+
+# Copy backend package.json (always exists)
 COPY backend/package.json backend/
-COPY backend/package-lock.json backend/
-RUN cd backend && if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
+# Copy backend/package-lock.json if it exists (ignore errors if missing)
+RUN if [ -f backend/package-lock.json ]; then :; else touch backend/package-lock.json; fi
+COPY backend/package-lock.json backend/ || true
+# Install only production dependencies
+RUN cd backend && if [ -s package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
 
 # Copy backend source
 COPY --from=backend-build /app/backend ./
