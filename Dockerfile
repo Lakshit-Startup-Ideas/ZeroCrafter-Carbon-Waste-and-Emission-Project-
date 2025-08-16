@@ -1,67 +1,64 @@
+# =============================
+# Production-Ready Dockerfile
+# =============================
 
 # =============================
 # 1. Build Frontend (Next.js)
 # =============================
 FROM node:18-alpine AS frontend-build
-WORKDIR /app/frontend
+WORKDIR /app
 
-# Copy dependency files separately for better cache
-COPY frontend/package.json ./
-# Copy lockfile if it exists (ignore error if missing)
-COPY frontend/package-lock.json* ./
+# Install dependencies
+COPY frontend/package*.json ./
+RUN npm ci --only=production
 
-# Install all dependencies (including devDependencies) for build
-RUN if [ -f package.json ]; then if [ -f package-lock.json ] && [ -s package-lock.json ]; then npm ci; else npm install; fi; else echo "No package.json, skipping install"; fi
-
-# Copy rest of frontend source
+# Copy source code
 COPY frontend/ ./
 
-# Build Next.js app
+# Build application
 RUN npm run build
 
 # =============================
 # 2. Build Backend (Node.js API)
 # =============================
 FROM node:18-alpine AS backend-build
-WORKDIR /app/backend
+WORKDIR /app
 
-# Copy dependency files separately for better cache
-COPY backend/package.json ./
-# Copy lockfile if it exists (ignore error if missing)
-COPY backend/package-lock.json* ./
+# Install dependencies
+COPY backend/package*.json ./
+RUN npm ci --only=production
 
-# Install all dependencies (including devDependencies) for build
-RUN if [ -f package.json ]; then if [ -f package-lock.json ] && [ -s package-lock.json ]; then npm ci; else npm install; fi; else echo "No package.json, skipping install"; fi
-
-# Copy rest of backend source
+# Copy source code
 COPY backend/ ./
 
 # =============================
-# 3. Production Image (Minimal)
+# 3. Production Runtime
 # =============================
 FROM node:18-alpine AS runner
 WORKDIR /app
 
-# Copy only production dependencies for backend
-COPY backend/package.json ./backend/
-# Copy lockfile if it exists (ignore error if missing)
-COPY backend/package-lock.json* ./backend/
-RUN cd backend && if [ -f package.json ]; then if [ -f package-lock.json ] && [ -s package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi; else echo "No package.json, skipping install"; fi
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-# Copy backend source (excluding node_modules)
-COPY --from=backend-build /app/backend ./backend
+# Copy built applications
+COPY --from=frontend-build --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=frontend-build --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=frontend-build --chown=nextjs:nodejs /app/public ./public
+COPY --from=backend-build --chown=nextjs:nodejs /app ./backend
 
-# Copy frontend build output only (no source or node_modules)
-COPY --from=frontend-build /app/frontend/.next ./frontend/.next
-COPY --from=frontend-build /app/frontend/public ./frontend/public
-COPY --from=frontend-build /app/frontend/package.json ./frontend/package.json
+# Switch to non-root user
+USER nextjs
 
-# Copy shared code if needed
-COPY shared/ ./shared/
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/api/health || exit 1
 
-# Expose the port your app runs on (adjust if needed)
-EXPOSE 3000
+# Environment
 ENV NODE_ENV=production
+ENV PORT=3000
 
-# Start the backend server (adjust if you serve frontend statically)
-CMD ["node", "backend/server.js"]
+EXPOSE 3000
+
+# Start application
+CMD ["node", "server.js"]
