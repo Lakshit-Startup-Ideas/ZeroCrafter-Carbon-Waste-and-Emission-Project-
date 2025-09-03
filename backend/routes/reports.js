@@ -5,7 +5,7 @@ const fs = require('fs');
 
 const Emissions = require('../models/Emissions');
 const User = require('../models/User');
-const { errorHelpers } = require('shared');
+const { errorHelpers } = require('../../shared');
 const { authenticateToken, requireStaff } = require('../middleware/auth');
 
 const router = express.Router();
