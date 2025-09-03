@@ -8,6 +8,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Existing palettes
         primary: {
           50: '#eff6ff',
           100: '#dbeafe',
@@ -56,6 +57,10 @@ module.exports = {
           800: '#991b1b',
           900: '#7f1d1d',
         },
+
+        // ✅ Added missing tokens
+        ring: '#3b82f6', // default blue ring color
+        background: '#ffffff', // white background for offsets
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -77,4 +82,4 @@ module.exports = {
     },
   },
   plugins: [],
-} 
+};
