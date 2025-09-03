@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/User');
-const { jwtHelpers, errorHelpers } = require('../shared');
+const { jwtHelpers, errorHelpers } = require('../../shared');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -18,7 +18,9 @@ const validateRegistration = [
   body('password')
     .isLength({ min: 8 })
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character'),
+    .withMessage(
+      'Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character'
+    ),
   body('companyName')
     .isLength({ min: 2, max: 100 })
     .trim()
@@ -34,9 +36,7 @@ const validateLogin = [
     .isEmail()
     .normalizeEmail()
     .withMessage('Please enter a valid email address'),
-  body('password')
-    .notEmpty()
-    .withMessage('Password is required'),
+  body('password').notEmpty().withMessage('Password is required'),
 ];
 
 // POST /api/auth/register
@@ -206,46 +206,50 @@ router.get('/me', authenticateToken, async (req, res) => {
 });
 
 // POST /api/auth/reset-password (placeholder for future implementation)
-router.post('/reset-password', [
-  body('email').isEmail().withMessage('Please enter a valid email address'),
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        error: {
-          message: 'Validation failed',
-          statusCode: 400,
-          code: 'VALIDATION_ERROR',
-          details: errors.array(),
-          timestamp: new Date().toISOString(),
-        },
+router.post(
+  '/reset-password',
+  [body('email').isEmail().withMessage('Please enter a valid email address')],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: {
+            message: 'Validation failed',
+            statusCode: 400,
+            code: 'VALIDATION_ERROR',
+            details: errors.array(),
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      const { email } = req.body;
+
+      // Check if user exists
+      const user = await User.findOne({ email });
+      if (!user) {
+        // Don't reveal if user exists or not for security
+        return res.json({
+          message:
+            'If an account with this email exists, a password reset link has been sent',
+        });
+      }
+
+      // TODO: Implement password reset logic
+      // 1. Generate reset token
+      // 2. Send email with reset link
+      // 3. Store reset token with expiration
+
+      res.json({
+        message:
+          'If an account with this email exists, a password reset link has been sent',
       });
+    } catch (error) {
+      console.error('Password reset error:', error);
+      res.status(500).json(errorHelpers.createError('Password reset failed'));
     }
-
-    const { email } = req.body;
-
-    // Check if user exists
-    const user = await User.findOne({ email });
-    if (!user) {
-      // Don't reveal if user exists or not for security
-      return res.json({
-        message: 'If an account with this email exists, a password reset link has been sent',
-      });
-    }
-
-    // TODO: Implement password reset logic
-    // 1. Generate reset token
-    // 2. Send email with reset link
-    // 3. Store reset token with expiration
-
-    res.json({
-      message: 'If an account with this email exists, a password reset link has been sent',
-    });
-  } catch (error) {
-    console.error('Password reset error:', error);
-    res.status(500).json(errorHelpers.createError('Password reset failed'));
   }
-});
+);
 
-module.exports = router; 
+module.exports = router;

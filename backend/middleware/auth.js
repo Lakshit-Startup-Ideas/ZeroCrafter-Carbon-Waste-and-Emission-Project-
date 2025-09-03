@@ -1,4 +1,4 @@
-const { jwtHelpers, errorHelpers } = require('../shared');
+const { jwtHelpers, errorHelpers } = require('../../shared');
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -6,7 +6,9 @@ const authenticateToken = (req, res, next) => {
   const token = jwtHelpers.extractToken(authHeader);
 
   if (!token) {
-    return res.status(401).json(errorHelpers.authError('Access token required'));
+    return res
+      .status(401)
+      .json(errorHelpers.authError('Access token required'));
   }
 
   try {
@@ -14,15 +16,19 @@ const authenticateToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(401).json(errorHelpers.authError('Invalid or expired token'));
+    return res
+      .status(401)
+      .json(errorHelpers.authError('Invalid or expired token'));
   }
 };
 
 // Role-based authorization middleware
-const authorizeRole = (roles) => {
+const authorizeRole = roles => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json(errorHelpers.authError('Authentication required'));
+      return res
+        .status(401)
+        .json(errorHelpers.authError('Authentication required'));
     }
 
     if (!roles.includes(req.user.role)) {
@@ -51,4 +57,4 @@ module.exports = {
   authorizeRole,
   requireAdmin,
   requireStaff,
-}; 
+};

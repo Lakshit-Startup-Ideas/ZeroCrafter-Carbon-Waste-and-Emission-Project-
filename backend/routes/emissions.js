@@ -2,24 +2,57 @@ const express = require('express');
 const { body, validationResult, query } = require('express-validator');
 
 const Emissions = require('../models/Emissions');
-const { errorHelpers } = require('../shared');
+const { errorHelpers } = require('../../shared');
 const { authenticateToken, requireStaff } = require('../middleware/auth');
 
 const router = express.Router();
 
 // Validation middleware
 const validateEmissionData = [
-  body('date').optional().isISO8601().withMessage('Date must be a valid ISO date'),
-  body('energyData.electricity.grid').optional().isFloat({ min: 0 }).withMessage('Grid electricity must be a non-negative number'),
-  body('energyData.electricity.renewable').optional().isFloat({ min: 0 }).withMessage('Renewable electricity must be a non-negative number'),
-  body('energyData.fuel.diesel').optional().isFloat({ min: 0 }).withMessage('Diesel consumption must be a non-negative number'),
-  body('energyData.fuel.petrol').optional().isFloat({ min: 0 }).withMessage('Petrol consumption must be a non-negative number'),
-  body('energyData.fuel.naturalGas').optional().isFloat({ min: 0 }).withMessage('Natural gas consumption must be a non-negative number'),
-  body('energyData.fuel.lpg').optional().isFloat({ min: 0 }).withMessage('LPG consumption must be a non-negative number'),
-  body('wasteData.recyclable').optional().isFloat({ min: 0 }).withMessage('Recyclable waste must be a non-negative number'),
-  body('wasteData.hazardous').optional().isFloat({ min: 0 }).withMessage('Hazardous waste must be a non-negative number'),
-  body('wasteData.landfill').optional().isFloat({ min: 0 }).withMessage('Landfill waste must be a non-negative number'),
-  body('notes').optional().isLength({ max: 500 }).withMessage('Notes cannot exceed 500 characters'),
+  body('date')
+    .optional()
+    .isISO8601()
+    .withMessage('Date must be a valid ISO date'),
+  body('energyData.electricity.grid')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Grid electricity must be a non-negative number'),
+  body('energyData.electricity.renewable')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Renewable electricity must be a non-negative number'),
+  body('energyData.fuel.diesel')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Diesel consumption must be a non-negative number'),
+  body('energyData.fuel.petrol')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Petrol consumption must be a non-negative number'),
+  body('energyData.fuel.naturalGas')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Natural gas consumption must be a non-negative number'),
+  body('energyData.fuel.lpg')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('LPG consumption must be a non-negative number'),
+  body('wasteData.recyclable')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Recyclable waste must be a non-negative number'),
+  body('wasteData.hazardous')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Hazardous waste must be a non-negative number'),
+  body('wasteData.landfill')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Landfill waste must be a non-negative number'),
+  body('notes')
+    .optional()
+    .isLength({ max: 500 })
+    .withMessage('Notes cannot exceed 500 characters'),
 ];
 
 // Apply authentication to all routes
@@ -27,78 +60,96 @@ router.use(authenticateToken);
 router.use(requireStaff);
 
 // GET /api/emissions - Get user's emissions with pagination and filtering
-router.get('/', [
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
-  query('startDate').optional().isISO8601().withMessage('Start date must be a valid ISO date'),
-  query('endDate').optional().isISO8601().withMessage('End date must be a valid ISO date'),
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        error: {
-          message: 'Validation failed',
-          statusCode: 400,
-          code: 'VALIDATION_ERROR',
-          details: errors.array(),
-          timestamp: new Date().toISOString(),
+router.get(
+  '/',
+  [
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+    query('startDate')
+      .optional()
+      .isISO8601()
+      .withMessage('Start date must be a valid ISO date'),
+    query('endDate')
+      .optional()
+      .isISO8601()
+      .withMessage('End date must be a valid ISO date'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: {
+            message: 'Validation failed',
+            statusCode: 400,
+            code: 'VALIDATION_ERROR',
+            details: errors.array(),
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      const { page = 1, limit = 20, startDate, endDate } = req.query;
+      const userId = req.user.userId;
+
+      // Build query
+      const query = { userId };
+
+      if (startDate || endDate) {
+        query.date = {};
+        if (startDate) query.date.$gte = new Date(startDate);
+        if (endDate) query.date.$lte = new Date(endDate);
+      }
+
+      // Calculate pagination
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      // Get emissions with pagination
+      const emissions = await Emissions.find(query)
+        .sort({ date: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean();
+
+      // Get total count for pagination
+      const total = await Emissions.countDocuments(query);
+
+      // Get summary statistics
+      const summary = await Emissions.getUserSummary(userId);
+
+      res.json({
+        emissions: emissions.map(emission => ({
+          id: emission._id,
+          date: emission.date,
+          energyData: emission.energyData,
+          wasteData: emission.wasteData,
+          calculatedEmissions: emission.calculatedEmissions,
+          notes: emission.notes,
+          isVerified: emission.isVerified,
+          createdAt: emission.createdAt,
+        })),
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit)),
         },
+        summary,
       });
+    } catch (error) {
+      console.error('Get emissions error:', error);
+      res
+        .status(500)
+        .json(errorHelpers.createError('Failed to fetch emissions'));
     }
-
-    const { page = 1, limit = 20, startDate, endDate } = req.query;
-    const userId = req.user.userId;
-
-    // Build query
-    const query = { userId };
-    
-    if (startDate || endDate) {
-      query.date = {};
-      if (startDate) query.date.$gte = new Date(startDate);
-      if (endDate) query.date.$lte = new Date(endDate);
-    }
-
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    
-    // Get emissions with pagination
-    const emissions = await Emissions.find(query)
-      .sort({ date: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .lean();
-
-    // Get total count for pagination
-    const total = await Emissions.countDocuments(query);
-
-    // Get summary statistics
-    const summary = await Emissions.getUserSummary(userId);
-
-    res.json({
-      emissions: emissions.map(emission => ({
-        id: emission._id,
-        date: emission.date,
-        energyData: emission.energyData,
-        wasteData: emission.wasteData,
-        calculatedEmissions: emission.calculatedEmissions,
-        notes: emission.notes,
-        isVerified: emission.isVerified,
-        createdAt: emission.createdAt,
-      })),
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / parseInt(limit)),
-      },
-      summary,
-    });
-  } catch (error) {
-    console.error('Get emissions error:', error);
-    res.status(500).json(errorHelpers.createError('Failed to fetch emissions'));
   }
-});
+);
 
 // POST /api/emissions - Create new emission record
 router.post('/', validateEmissionData, async (req, res) => {
@@ -170,7 +221,9 @@ router.post('/', validateEmissionData, async (req, res) => {
     });
   } catch (error) {
     console.error('Create emission error:', error);
-    res.status(500).json(errorHelpers.createError('Failed to create emission record'));
+    res
+      .status(500)
+      .json(errorHelpers.createError('Failed to create emission record'));
   }
 });
 
@@ -197,7 +250,9 @@ router.put('/:id', validateEmissionData, async (req, res) => {
     // Find emission record
     const emission = await Emissions.findOne({ _id: id, userId });
     if (!emission) {
-      return res.status(404).json(errorHelpers.notFoundError('Emission record'));
+      return res
+        .status(404)
+        .json(errorHelpers.notFoundError('Emission record'));
     }
 
     // Update emission record
@@ -223,7 +278,9 @@ router.put('/:id', validateEmissionData, async (req, res) => {
     });
   } catch (error) {
     console.error('Update emission error:', error);
-    res.status(500).json(errorHelpers.createError('Failed to update emission record'));
+    res
+      .status(500)
+      .json(errorHelpers.createError('Failed to update emission record'));
   }
 });
 
@@ -236,7 +293,9 @@ router.delete('/:id', async (req, res) => {
     // Find and delete emission record
     const emission = await Emissions.findOneAndDelete({ _id: id, userId });
     if (!emission) {
-      return res.status(404).json(errorHelpers.notFoundError('Emission record'));
+      return res
+        .status(404)
+        .json(errorHelpers.notFoundError('Emission record'));
     }
 
     res.json({
@@ -244,7 +303,9 @@ router.delete('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Delete emission error:', error);
-    res.status(500).json(errorHelpers.createError('Failed to delete emission record'));
+    res
+      .status(500)
+      .json(errorHelpers.createError('Failed to delete emission record'));
   }
 });
 
@@ -257,7 +318,9 @@ router.get('/:id', async (req, res) => {
     // Find emission record
     const emission = await Emissions.findOne({ _id: id, userId });
     if (!emission) {
-      return res.status(404).json(errorHelpers.notFoundError('Emission record'));
+      return res
+        .status(404)
+        .json(errorHelpers.notFoundError('Emission record'));
     }
 
     res.json({
@@ -275,8 +338,10 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Get emission error:', error);
-    res.status(500).json(errorHelpers.createError('Failed to fetch emission record'));
+    res
+      .status(500)
+      .json(errorHelpers.createError('Failed to fetch emission record'));
   }
 });
 
-module.exports = router; 
+module.exports = router;

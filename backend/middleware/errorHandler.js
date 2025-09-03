@@ -1,4 +1,4 @@
-const { errorHelpers } = require('../shared');
+const { errorHelpers } = require('../../shared');
 
 // Error handling middleware
 const errorHandler = (err, req, res, next) => {
@@ -68,4 +68,4 @@ const errorHandler = (err, req, res, next) => {
   });
 };
 
-module.exports = { errorHandler }; 
+module.exports = { errorHandler };

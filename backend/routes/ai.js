@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const axios = require('axios');
 
 const Emissions = require('../models/Emissions');
-const { errorHelpers } = require('../shared');
+const { errorHelpers } = require('../../shared');
 const { authenticateToken, requireStaff } = require('../middleware/auth');
 
 const router = express.Router();
