@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Removed deprecated experimental.appDir. Add other valid config options below if needed.
+  reactStrictMode: true, // recommended for best practices
   images: {
     domains: ['localhost'],
   },
